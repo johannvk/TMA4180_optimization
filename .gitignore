@@ -130,3 +130,7 @@ dmypy.json
 
 # Pycharm project files
 *.xml
+.idea/
+
+# VS-Code project files:
+.vscode
