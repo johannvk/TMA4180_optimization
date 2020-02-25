@@ -29,10 +29,12 @@ def display_robot_arm(line_lengths, turn_angles, target_point=False, display=Tru
 
     fig, axis = plt.subplots()
     axis.add_line(robot_arm)
-    axis.plot(0,0,"bo")
+    axis.plot(0, 0, "bo")  # Plotting Origin
+    end_x, end_y = line_x[-1], line_y[-1]
+    axis.plot(end_x, end_y, "ko")  # Plotting end point of the arm:
 
     if target_point:
-        axis.plot(target_point[0],target_point[1],'x')
+        axis.plot(target_point[0], target_point[1], 'x')
 
     fig.suptitle("Robot Arm", fontsize=18)
     plt.tight_layout()
@@ -51,6 +53,7 @@ def test_display_robot_arm():
     angles = [np.pi/3, -np.pi/3, -np.pi/3, np.pi/3, -np.pi/3]
 
     display_robot_arm(line_length, angles)
+
 
 if __name__ == "__main__":
     test_display_robot_arm()

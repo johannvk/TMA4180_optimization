@@ -5,32 +5,39 @@ import visualization
 from matplotlib import pyplot as plt
 
 
-def find_step_direction(f,df,xk,B,P):
-    p=np.linalg.solve(B(P,xk,l),-df(P,xk,l))
-    if p@df(P,xk,l) > 0:
+def find_step_direction(f, df, xk, B, P, l):
+    p = np.linalg.solve(B(P, xk, l), -df(P, xk, l))
+    if p@df(P, xk, l) > 0:
         print("Newton not decreasing, using direct descent")
-        p=-df(P,xk,l)
-    print("descent:  ", p@df(P,xk,l))
-    p = p/la.norm(p,2)
+        p = -df(P, xk, l)
+    print("descent:  ", p@df(P, xk, l))
+    p = p/la.norm(p, 2)
     return p
+
 
 def id(P,x,l):
     n = x.size
     return np.identity(n)
 
-def find_minimum(f, P, df, theta_0, B, tol=1e-6, max_iter=50, c1=0.5, c2=0.8):
+
+def find_minimum(f, P, df, theta_0, B, line_lengths, tol=1e-6, max_iter=50, c1=0.01, c2=0.8):
+    ### KJEMPESKUMMELT MED GLOBALE VARIABLER GUTTER!
     # f is function to be minimized
     # P is point to be reached
     # df is "nabla"f (a function)
     # B(xk) is a function returning Bk,
+    # line_lengths is an array of the line lengths for each arm.
     # the Bk is the matrix used in defining the direction vector p in step k.
     # Gradient descent method is Bk = Id. Newtons method uses Bk = hessian(fk).
+    l = line_lengths
     i=0
     theta_k = theta_0
     improvement = tol+1
+
     while i<max_iter and abs(improvement)>tol:
         i += 1
-        p = find_step_direction(f,df,theta_k,B,P)
+        p = find_step_direction(f,df,theta_k,B,P, line_lengths)
+        print(f"The step direction is: {p}\n")
         a_max = 1e100  # initial step length
         a_min = 0
         a = 1
@@ -43,7 +50,6 @@ def find_minimum(f, P, df, theta_0, B, tol=1e-6, max_iter=50, c1=0.5, c2=0.8):
         plt.plot(np.array([0,b]),np.array([f(P,theta_k,l),f(P,theta_k,l)+b*df(P,theta_k,l)@p]), label=r'derivative at $\theta^{(k)}$')
         plt.plot(np.array([0,b]),np.array([f(P,theta_k,l),f(P,theta_k,l)+c1*b*df(P,theta_k,l)@p]), label="First wolfe condition")
 
-
         while j < max_iter:
             # For wolfe plotting
             A.append(a)
@@ -53,6 +59,8 @@ def find_minimum(f, P, df, theta_0, B, tol=1e-6, max_iter=50, c1=0.5, c2=0.8):
             print(f'a={a}')
             print(f'possible improvement={f(P,theta_k,l)-f(P,theta_k+a*p,l)}')
             print(f'First wolfe requirement: {f(P,theta_k+a*p,l)}, <= {f(P,theta_k,l)} + {a*c1*df(P,theta_k,l)@p}')
+
+            visualization.display_robot_arm(line_lengths=l, turn_angles=theta_k, target_point=P)
 
             j += 1
             if f(P, theta_k + a*p, l) > f(P, theta_k, l) + a*c1*df(P, theta_k, l)@p:
@@ -73,28 +81,36 @@ def find_minimum(f, P, df, theta_0, B, tol=1e-6, max_iter=50, c1=0.5, c2=0.8):
         plt.legend()
         plt.show()
 
-
         improvement = f(P, theta_k, l) - f(P, theta_k + a*p, l)
         print("improvement from this step=", improvement, "a=",a)
         theta_k = theta_k + a*p
+
     print("Solutoin found. Number of steps=", i)
     return theta_k, f(P, theta_k, l)
 
 
-def x_fnc(theta, l):
-    x = 0
-    phi = 0
-    # Maybe do not need to reset phi to zero each time?
-    for i, li in enumerate(l):
+def x_fnc(theta, l, active_index=0):
+    # Initial value for x:
+    x = 0.0
+    # Sum up the first "k-1" theta-values if the active index is not the first one:
+    phi = np.sum(theta[0:active_index])
+
+    for i in range(active_index, len(l)):
+        li = l[i]
         phi += theta[i]
-        #for j in range(i+1):
-        #    phi += theta[j]
         x += li*np.cos(phi)
     return x
 
 
 def dx(k, theta, l):
-    return -y_fnc(theta[k:],l[k:])
+    # theta_k = np.sum(theta[0:k])
+    # dx_k = 0.0
+    # for i in range(k, len(theta)):
+    #     theta_k += theta[k]
+    #     dx_k -= l[i]*np.sin(theta_k)
+    #  Can do as before, as the y_fnc has been modified, with the "active_index" arguments,
+    #  which decides when to count the sum from. But also adding the right theta-values to start with.
+    return -y_fnc(theta, l, active_index=k)
 
 
 def ddx(k, m, theta, l):
@@ -102,18 +118,28 @@ def ddx(k, m, theta, l):
     return -x_fnc(theta[max_index:], l[max_index:])
 
 
-def y_fnc(theta, l):
-    y=0
-    for i, li in enumerate(l):
-        phi = 0
-        for j in range(i+1):
-            phi += theta[j]
+def y_fnc(theta, l, active_index=0):
+    # Initial value for y:
+    y = 0.0
+    # Sum up the first "k-1" theta-values if the active index is not the first one:
+    phi = np.sum(theta[0:active_index])
+
+    for i in range(active_index, len(l)):
+        li = l[i]
+        phi += theta[i]
         y += li*np.sin(phi)
     return y
 
 
 def dy(k, theta, l):
-    return x_fnc(theta[k:], l[k:])
+    # theta_k = np.sum(theta[0:k])
+    # dy_k = 0.0
+    # for i in range(k, len(theta)):
+    #     theta_k += theta[k]
+    #     dy_k += l[i]*np.cos(theta_k)
+    #  Can do as before, as the y_fnc has been modified, with the "active_index" arguments,
+    #  which decides when to count the sum from. But also adding the right theta-values to start with.
+    return x_fnc(theta, l, active_index=k)
 
 
 def ddy(k, m, theta, l):
@@ -144,33 +170,41 @@ def ddf(p,theta,l):
     return np.array(DDf)
 
 
-print("problem 1")
-n=3
-theta_0 = np.zeros(n)
-l=np.array([3,2,2])
-p=(3,2)
-theta, f_min = find_minimum(f,p,df,theta_0, ddf)
-print("theta, f(theta)=", theta, f_min)
-visualization.display_robot_arm(l, theta, p)
+def testing_code():
+    # print(f"X-value-test:\n{x_fnc(np.array([np.pi/2.0]*3), [1, 2, 3], active_index=0)} ")
+    # print(f"X-deriative:\n{dx(1, np.array([np.pi/2.0]*3), [1, 2, 3])}")
 
-#print("\nproblem 2")
-#n=3
-#theta_0 = np.zeros(n)
-#l=np.array([1,4,1])
-#p=(1,1)
-#theta, f_min = find_minimum(f,p,df,theta_0, ddf)
-#print("theta, f(theta)=", theta, f_min)
-#visualization.display_robot_arm(l, theta, p)
-#
-#print("\nproblem 3")
-#n=4
-#theta_0 = np.zeros(n)
-#l=np.array([3,2,1,1])
-#p=(3,2)
-#theta, f_min = find_minimum(f,p,df,theta_0, ddf)
-#print("theta, f(theta)=", theta, f_min)
-#visualization.display_robot_arm(l, theta, p)
-#
-# print("\nproblem 4")
-# p=(0,0)
-# print("theta, f(theta)=",find_minimum(f,p,df,theta_0, ddf))
+    print("problem 1")
+    n=3
+    theta_0 = np.ones(n)*(0.0/2)
+    l=np.array([3,2,2])
+    p=(3,2)
+    theta, f_min = find_minimum(f,p,df,theta_0, ddf, line_lengths=l)
+    print("theta, f(theta)=", theta, f_min)
+    visualization.display_robot_arm(l, theta, p)
+
+    #print("\nproblem 2")
+    #n=3
+    #theta_0 = np.zeros(n)
+    #l=np.array([1,4,1])
+    #p=(1,1)
+    #theta, f_min = find_minimum(f,p,df,theta_0, ddf)
+    #print("theta, f(theta)=", theta, f_min)
+    #visualization.display_robot_arm(l, theta, p)
+    #
+    #print("\nproblem 3")
+    #n=4
+    #theta_0 = np.zeros(n)
+    #l=np.array([3,2,1,1])
+    #p=(3,2)
+    #theta, f_min = find_minimum(f,p,df,theta_0, ddf)
+    #print("theta, f(theta)=", theta, f_min)
+    #visualization.display_robot_arm(l, theta, p)
+    #
+    # print("\nproblem 4")
+    # p=(0,0)
+    # print("theta, f(theta)=",find_minimum(f,p,df,theta_0, ddf))
+
+
+if __name__ == "__main__":
+    testing_code()
