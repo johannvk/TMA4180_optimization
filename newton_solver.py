@@ -1,32 +1,59 @@
 # optimizing using gradient descent and newton
 import numpy as np
 #import np.linalg as la
+import visualization
+from matplotlib import pyplot as plt
 
 
 def find_step_direction(f,df,xk,B,P):
-    return np.linalg.solve(B(P,xk,l),-df(P,xk,l))
+    p=np.linalg.solve(B(P,xk,l),-df(P,xk,l))
+    if p@df(P,xk,l) > 0:
+        print("neg")
+        p=-df(P,xk,l)
+    print("descent:  ", p@df(P,xk,l))
+    return p
 
+def id(P,x,l):
+    n = x.size
+    return np.identity(n)
 
 def find_minimum(f, P, df, theta_0, B, tol=1e-6, max_iter=50, c1=0.5, c2=0.8):
     # f is function to be minimized
     # P is point to be reached
     # df is "nabla"f (a function)
-    # B(xk) is a function returning Bk*xk,
-    # where Bk is the matrix used in defining the direction vector p in step k.
+    # B(xk) is a function returning Bk,
+    # the Bk is the matrix used in defining the direction vector p in step k.
     # Gradient descent method is Bk = Id. Newtons method uses Bk = hessian(fk).
     i=0
     theta_k = theta_0
     improvement = tol+1
-    while i<max_iter and improvement>tol:
+    while i<max_iter and abs(improvement)>tol:
         i += 1
         p = find_step_direction(f,df,theta_k,B,P)
         a_max = 1e100  # initial step length
         a_min = 0
         a = 1
         j = 0
+
+        A=[]
+        F=[]
+        b=a/4
+        plt.plot(np.array([0,b]),np.array([f(P,theta_k,l),f(P,theta_k,l)+b*df(P,theta_k,l)@p]), label=r'derivative at $\theta^{(k)}$')
+        plt.plot(np.array([0,b]),np.array([f(P,theta_k,l),f(P,theta_k,l)+c1*b*df(P,theta_k,l)@p]), label="First wolfe condition")
+
+
         while j < max_iter:
+            A.append(a)
+            F.append(f(P,theta_k+a*p,l))
+
+            print(f'\nj={j}')
+            print(f'a={a}')
+            print(f'possible improvement={f(P,theta_k,l)-f(P,theta_k+a*p,l)}')
+            print(f'First wolfe requirement: {f(P,theta_k+a*p,l)}, <= {f(P,theta_k,l)} + {a*c1*df(P,theta_k,l)@p}')
+
             j += 1
             if f(P, theta_k + a*p, l) > f(P, theta_k, l) + a*c1*df(P, theta_k, l)@p:
+                print("First wolfe=Not passed")
                 a_max = a
                 a = a_max/2 + a_min/2
             elif df(P, theta_k + a*p, l).T@p <= c2*df(P, theta_k, l).T@p:
@@ -37,10 +64,17 @@ def find_minimum(f, P, df, theta_0, B, tol=1e-6, max_iter=50, c1=0.5, c2=0.8):
                     a = (a_max + a_min)/2
             else:
                 break
+
+
+        plt.plot(np.array(A), np.array(F))
+        plt.legend()
+        plt.show()
+
+
         improvement = f(P, theta_k, l) - f(P, theta_k + a*p, l)
-        print("improvement=", improvement)
+        print("improvement from this step=", improvement, "a=",a)
         theta_k = theta_k + a*p
-    print("Number of steps=", i)
+    print("Solutoin found. Number of steps=", i)
     return theta_k, f(P, theta_k, l)
 
 
@@ -52,7 +86,7 @@ def x_fnc(theta, l):
         phi += theta[i]
         #for j in range(i+1):
         #    phi += theta[j]
-        x += np.cos(phi)
+        x += li*np.cos(phi)
     return x
 
 
@@ -71,7 +105,7 @@ def y_fnc(theta, l):
         phi = 0
         for j in range(i+1):
             phi += theta[j]
-        y += np.sin(phi)
+        y += li*np.sin(phi)
     return y
 
 
@@ -112,22 +146,28 @@ n=3
 theta_0 = np.zeros(n)
 l=np.array([3,2,2])
 p=(3,2)
-print("theta, f(theta)=",find_minimum(f,p,df,theta_0, ddf))
+theta, f_min = find_minimum(f,p,df,theta_0, ddf)
+print("theta, f(theta)=", theta, f_min)
+visualization.display_robot_arm(l, theta, p)
 
-print("\nproblem 2")
-n=3
-theta_0 = np.zeros(n)
-l=np.array([1,4,1])
-p=(1,1)
-print("theta, f(theta)=",find_minimum(f,p,df,theta_0, ddf))
-
-print("\nproblem 3")
-n=4
-theta_0 = np.zeros(n)
-l=np.array([3,2,1,1])
-p=(3,2)
-print("theta, f(theta)=",find_minimum(f,p,df,theta_0, ddf))
-
+#print("\nproblem 2")
+#n=3
+#theta_0 = np.zeros(n)
+#l=np.array([1,4,1])
+#p=(1,1)
+#theta, f_min = find_minimum(f,p,df,theta_0, ddf)
+#print("theta, f(theta)=", theta, f_min)
+#visualization.display_robot_arm(l, theta, p)
+#
+#print("\nproblem 3")
+#n=4
+#theta_0 = np.zeros(n)
+#l=np.array([3,2,1,1])
+#p=(3,2)
+#theta, f_min = find_minimum(f,p,df,theta_0, ddf)
+#print("theta, f(theta)=", theta, f_min)
+#visualization.display_robot_arm(l, theta, p)
+#
 # print("\nproblem 4")
 # p=(0,0)
 # print("theta, f(theta)=",find_minimum(f,p,df,theta_0, ddf))

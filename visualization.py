@@ -21,14 +21,18 @@ def get_robot_line_segments(line_lengths, turn_angles):
     return x_coordinates, y_coordinates
 
 
-def display_robot_arm(line_lengths, turn_angles, display=True, filepath=False):
+def display_robot_arm(line_lengths, turn_angles, target_point=False, display=True, filepath=False):
     line_x, line_y = get_robot_line_segments(line_lengths, turn_angles)
 
     robot_arm = lines.Line2D(line_x, line_y,
                              c='green', alpha=0.8, linestyle='-', linewidth=2, marker='.', markersize=10, markerfacecolor='red')
-    
+
     fig, axis = plt.subplots()
     axis.add_line(robot_arm)
+    axis.plot(0,0,"bo")
+
+    if target_point:
+        axis.plot(target_point[0],target_point[1],'x')
 
     fig.suptitle("Robot Arm", fontsize=18)
     plt.tight_layout()
@@ -48,5 +52,5 @@ def test_display_robot_arm():
 
     display_robot_arm(line_length, angles)
 
-
-test_display_robot_arm()
+if __name__ == "__main__":
+    test_display_robot_arm()
