@@ -1,6 +1,6 @@
 # optimizing using gradient descent and newton
 import numpy as np
-#import np.linalg as la
+import numpy.linalg as la
 import visualization
 from matplotlib import pyplot as plt
 
@@ -8,9 +8,10 @@ from matplotlib import pyplot as plt
 def find_step_direction(f,df,xk,B,P):
     p=np.linalg.solve(B(P,xk,l),-df(P,xk,l))
     if p@df(P,xk,l) > 0:
-        print("neg")
+        print("Newton not decreasing, using direct descent")
         p=-df(P,xk,l)
     print("descent:  ", p@df(P,xk,l))
+    p = p/la.norm(p,2)
     return p
 
 def id(P,x,l):
@@ -35,14 +36,16 @@ def find_minimum(f, P, df, theta_0, B, tol=1e-6, max_iter=50, c1=0.5, c2=0.8):
         a = 1
         j = 0
 
+        # Plot first wolfe tests
         A=[]
         F=[]
-        b=a/4
+        b=a
         plt.plot(np.array([0,b]),np.array([f(P,theta_k,l),f(P,theta_k,l)+b*df(P,theta_k,l)@p]), label=r'derivative at $\theta^{(k)}$')
         plt.plot(np.array([0,b]),np.array([f(P,theta_k,l),f(P,theta_k,l)+c1*b*df(P,theta_k,l)@p]), label="First wolfe condition")
 
 
         while j < max_iter:
+            # For wolfe plotting
             A.append(a)
             F.append(f(P,theta_k+a*p,l))
 
@@ -65,7 +68,7 @@ def find_minimum(f, P, df, theta_0, B, tol=1e-6, max_iter=50, c1=0.5, c2=0.8):
             else:
                 break
 
-
+        # Wolfe plotting
         plt.plot(np.array(A), np.array(F))
         plt.legend()
         plt.show()
