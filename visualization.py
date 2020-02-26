@@ -26,22 +26,31 @@ def display_robot_arm(line_lengths, turn_angles, target_point=False, display=Tru
 
     robot_arm = lines.Line2D(line_x, line_y,
                              c='green', alpha=0.8, linestyle='-', linewidth=2, marker='.', markersize=10, markerfacecolor='red')
+    end_x, end_y = line_x[-1], line_y[-1]
+    if target_point:
+        miss_distance = np.linalg.norm([target_point[0] - end_x, target_point[1] - end_y])
 
     fig, axis = plt.subplots()
     axis.add_line(robot_arm)
     axis.plot(0, 0, "bo")  # Plotting Origin
-    end_x, end_y = line_x[-1], line_y[-1]
-    axis.plot(end_x, end_y, "ko")  # Plotting end point of the arm:
+
+    axis.plot(end_x, end_y, "ko", label="Robot End", markersize=10)  # Plotting end point of the arm:
 
     if target_point:
-        axis.plot(target_point[0], target_point[1], 'x')
+        axis.plot(target_point[0], target_point[1], 'x', label="Target Point", markersize=10)
+        fig.suptitle(f"Target point: {target_point}, Distance: {miss_distance:.2e} ", fontsize=18)
+    else:
+        fig.suptitle("Robot Arm", fontsize=18)
 
-    fig.suptitle("Robot Arm", fontsize=18)
-    plt.tight_layout()
+    plt.tight_layout(rect=[0.03, 0.03, 0.97, 0.965])
+    axis.grid(linestyle='--')
+    # axis.autoscale()
+    # axis.set(aspect=1)
 
-    axis.autoscale()
-    axis.set(aspect=1)
+    axis.set_xlabel("X-coordinate", fontsize=15)
+    axis.set_ylabel("Y-coordinate", fontsize=15)
 
+    axis.legend(loc="best", fontsize=16)
     if display:
         plt.show()
     else:
