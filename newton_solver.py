@@ -21,7 +21,7 @@ def find_step_direction(f, df, xk, B, P, l):
     return p
 
 
-def id(P,x,l):
+def _id(P,x,l):
     n = x.size
     return np.identity(n)
 

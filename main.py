@@ -24,10 +24,10 @@ def problem_2():
     print("\nproblem 2")
     n=3
     theta_0 = np.ones(n)*(np.pi/3)
-    l=np.array([1,4,1])
-    p=(1,1)
+    l = np.array([1, 4, 1])
+    p = (1, 1)
 
-    theta, f_min = find_minimum(f,p,df,theta_0, ddf, line_lengths=l, tol=1.0e-10)
+    theta, f_min = find_minimum(f, p, df, theta_0, ddf, line_lengths=l, tol=1.0e-10)
     print("theta, f(theta)=", theta, f_min)
     visualization.display_robot_arm(l, theta, p)
 
@@ -35,7 +35,7 @@ def problem_2():
 def problem_3():
     print("\nproblem 3")
     n = 4
-    theta_0 = np.ones(n) * (np.pi / 4)
+    theta_0 = np.ones(n) * (0.0 / 4)
     l = np.array([3, 2, 1, 1])
     p = (3, 2)
     theta, f_min = find_minimum(f, p, df, theta_0, ddf, line_lengths=l, tol=1.0e-10)
@@ -61,10 +61,10 @@ def testing_code():
 
 
 def main():
-    problem_1()
-    problem_2()
+    # problem_1()
+    # problem_2()
     problem_3()
-    problem_4()
+    # problem_4()
 
 
 if __name__ == "__main__":
