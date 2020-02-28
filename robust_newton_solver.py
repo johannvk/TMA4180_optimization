@@ -52,11 +52,13 @@ def line_search_step(P, f, df, ddf, theta_k, line_lengths, c1=0.01, c2=0.8, max_
         directional_derivative_at_step = df(P, theta_k + a * p, line_lengths).T @ p
         directional_derivative_reduction = c2 * df(P, theta_k, line_lengths).T @ p
 
-        if f_at_step > f_descent:  # Meaning first wolfe-requirement was not passed
+        if (f_at_step > f_descent)  or (directional_derivative_at_step > -directional_derivative_reduction):
+            # Meaning (first wolfe-requirement was not passed)
+            # or (The strong part of the second wolfe-req not passed)
             a_max = a
             a = 1 * a_max / 4 + 3 * a_min / 4
 
-        elif np.abs(directional_derivative_at_step) > np.abs(directional_derivative_reduction):
+        elif directional_derivative_at_step <= directional_derivative_reduction: # Meaning second wolfe-requirement was not passed
             a_min = a
             if a_max > 1e99:
                 a *= 2
