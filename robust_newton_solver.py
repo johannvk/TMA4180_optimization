@@ -93,7 +93,8 @@ def second_order_step(P, f, ddf, thetas, line_lengths):
         return p, a, True
 
 
-def robust_minimizer(P, f, df, ddf, theta_k, line_lengths, vtol=1e-8, gtol=1.0e-8, max_iter=50, c1=0.01, c2=0.8):
+def robust_minimizer(P, f, df, ddf, theta_k, line_lengths, vtol=1e-8, gtol=1.0e-8, convergence_data=False,
+                     max_iter=50, c1=0.01, c2=0.8):
     # f is the function to be minimized
     # P is point to be reached
     # df is "nabla"f (a function)
@@ -110,6 +111,8 @@ def robust_minimizer(P, f, df, ddf, theta_k, line_lengths, vtol=1e-8, gtol=1.0e-
     anulus_inner, anulus_outer = anulus_radii(line_lengths)
     target_feasible = anulus_inner <= la.norm(P, 2) < anulus_outer
     converged = False
+    theta_changes = []
+    function_evaluations = []
 
     # We know that f is non-negative, bounded from below by zero: Assuming that our target point P
     # is in the feasible domain, we should be able to reach it with the robot arms.
@@ -119,6 +122,7 @@ def robust_minimizer(P, f, df, ddf, theta_k, line_lengths, vtol=1e-8, gtol=1.0e-
             i += 1
 
             function_value = f(P, theta_k, l)
+            function_evaluations.append(function_value)
 
             # Check if we have a feasible point, and if close enough, return.
             if function_value < vtol:  # or (not target_feasible and grad_norm < gtol):
@@ -128,12 +132,14 @@ def robust_minimizer(P, f, df, ddf, theta_k, line_lengths, vtol=1e-8, gtol=1.0e-
                 # We are at a stationary point. If there are no negative eigenvalues, we are at a minimizer.
                 print("Taking second order step!\n")
                 p, a, converged = second_order_step(P, f, ddf, theta_k, l)
+                theta_changes.append(a*p)
                 theta_k += a * p
                 continue
 
             else:
                 # If none of the above apply, perform regular step:
                 p, a = line_search_step(P, f, df, ddf, theta_k, line_lengths)
+                theta_changes.append(a*p)
                 theta_k += a * p
     else:
         while i < max_iter:
@@ -145,7 +151,11 @@ def robust_minimizer(P, f, df, ddf, theta_k, line_lengths, vtol=1e-8, gtol=1.0e-
             if grad_norm < gtol:
                 break
             p, a = line_search_step(P, f, df, ddf, theta_k, line_lengths)
+            theta_changes.append(a * p)
             theta_k += a * p
 
     print(f"Solution found. Number of steps: {i}, function value: {f(P, theta_k, l):.3e}")
-    return theta_k, f(P, theta_k, l)
+    if convergence_data:
+        return theta_k, f(P, theta_k, l), theta_changes, function_evaluations
+    else:
+        return theta_k, f(P, theta_k, l)
